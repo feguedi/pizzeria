@@ -1,0 +1,38 @@
+{
+  "name": "pizzeria",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/feguedi/pizzeria.git",
+  "author": "Ixe Fernández",
+  "scripts": {
+    "start": "node server",
+    "audit": "npm audit --fix",
+    "build": "cd client && npm install && npm run build",
+    "build:yarn": "cd client && yarn install && yarn run build",
+    "justbuild": "cd client && yarn run build",
+    "dev:nodemon": "nodemon server -e js,json,env",
+    "dev:react": "cd client && yarn start",
+    "dev": "cd client && yarn install && yarn start",
+    "eject": "cd client && npm run eject",
+    "test": "cd client && npm run test"
+  },
+  "cacheDirectories": [
+    "node_modules",
+    "client/node_modules"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@hapi/hapi": "^19.1.1",
+    "@hapi/inert": "^6.0.1",
+    "@hapi/joi": "^17.1.1",
+    "bcrypt": "^5.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.9.20",
+    "underscore": "^1.10.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  }
+}
