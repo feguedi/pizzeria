@@ -2,8 +2,8 @@ const { connect } = require('mongoose')
 
 exports.conexion = async () => {
     try {
-        console.log('DB_URI', process.env.DB_URI)
         await connect(process.env.DB_URI, { 
+            useCreateIndex: true,
             useNewUrlParser: true, 
             useUnifiedTopology: true
         })

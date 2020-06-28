@@ -69,11 +69,6 @@ const pedidoSchema = new Schema({
             }
         }
     },
-    hora: {
-        type: Date,
-        default: Date.now(),
-        required: true
-    },
     usuario: {
         type: Schema.Types.ObjectId,
         ref: 'Usuario'
@@ -95,6 +90,8 @@ const pedidoSchema = new Schema({
         type: Number,
         required: true
     }
+}, {
+    timestamps: true
 })
 
 module.exports = model('Pedido', pedidoSchema)

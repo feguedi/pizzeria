@@ -74,20 +74,28 @@ const routes = [
         method: 'POST',
         path: '/login',
         handler: async (req, res) => {
-            return {
-                ok: true,
-                message: 'POST login'
+            const { phone, password } = req.payload
+            const response = await ctls.entrarUsuario(phone, password)
+            let finalResponse = res.response(response)
+
+            if (!response.ok) {
+                finalResponse.code(response.status)
             }
+            return finalResponse
         }
     },
     {
         method: 'POST',
         path: '/registrarme',
         handler: async (req, res) => {
-            return {
-                ok: true,
-                message: 'POST registrarme'
+            const { phone, password, address } = req.payload
+            const response = await ctls.nuevoUsuario(phone, password, address)
+            const finalResponse = res.response(response)
+
+            if (!response.ok) {
+                finalResponse.code(response.status)
             }
+            return finalResponse
         }
     },
     {

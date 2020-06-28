@@ -10,19 +10,19 @@ const promocionSchema = new Schema({
         required: true
     },
     oferton: [{
-        elementos: [{
-            especialidad: {
-                required: true,
-                type: Schema.Types.ObjectId,
-                ref: 'Especialidad'
-            },
-            cantidad: {
-                type: Number,
-                required: true,
-                default: 2
-            }
-        }]
+        especialidad: {
+            required: true,
+            type: Schema.Types.ObjectId,
+            ref: 'Especialidad'
+        },
+        cantidad: {
+            type: Number,
+            required: true,
+            default: 2
+        }
     }]
+}, {
+    timestamps: true
 })
 
 module.exports = model('Promocion', promocionSchema)
