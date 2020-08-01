@@ -1,4 +1,5 @@
 const { Schema, model } = require('mongoose')
+const uniqueValidator = require('mongoose-unique-validator')
 
 const tipoValues = {
     values: ['gerente', 'caja'],
@@ -8,7 +9,11 @@ const tipoValues = {
 const administradorSchema = new Schema({
     nombre: {
         type: String,
-        required: [true, 'El nombre es obligatoria']
+        required: [true, 'El nombre es obligatorio']
+    },
+    password: {
+        type: String,
+        required: [true, 'La contraseña es obligatoria']
     },
     tipo: {
         type: String,
@@ -20,3 +25,6 @@ const administradorSchema = new Schema({
     }
 })
 
+administradorSchema.plugin(uniqueValidator, { message: 'El teléfono ya existe' })
+
+module.exports = model('Admin', administradorSchema)

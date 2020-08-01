@@ -6,8 +6,8 @@ const routes = [
     // ================
     {
         method: 'POST',
-        path: '/pedido',
-        handler: async (req, res) => {
+        path: '/api/pedido',
+        handler: async (req, h) => {
             return {
                 ok: true,
                 message: 'POST pedido'
@@ -18,9 +18,24 @@ const routes = [
     // Métodos del administrador
     // ================
     {
+        method: 'POST',
+        path: '/api/admin',
+        handler: async (req, h) => {
+            let { nombre, telefono, contrasena, tipo } = req.payload
+            if (!tipo) tipo = 'caja'
+            const response = await ctls.nuevoAdmin({ nombre, contrasena, tipo, numeroTelefono: telefono })
+            const finalResponse = h.response(response)
+
+            if (!response.ok) {
+                finalResponse.code(response.status)
+            }
+            return finalResponse
+        }
+    },
+    {
         method: 'GET',
-        path: '/pedidos',
-        handler: async (req, res) => {
+        path: '/api/pedidos',
+        handler: async (req, h) => {
             return {
                 ok: true,
                 message: 'GET pedidos'
@@ -29,8 +44,8 @@ const routes = [
     },
     {
         method: 'GET',
-        path: '/pedido/{id}',
-        handler: async (req, res) => {
+        path: '/api/pedido/{id}',
+        handler: async (req, h) => {
             return {
                 ok: true,
                 message: 'GET pedido'
@@ -39,8 +54,8 @@ const routes = [
     },
     {
         method: 'PUT',
-        path: '/pedido/{id}',
-        handler: async (req, res) => {
+        path: '/api/pedido/{id}',
+        handler: async (req, h) => {
             return {
                 ok: true,
                 message: 'PUT pedido'
@@ -49,21 +64,39 @@ const routes = [
     },
     {
         method: 'POST',
-        path: '/ingrediente',
-        handler: async (req, res) => {
-            return {
-                ok: true,
-                message: 'POST ingrediente'
+        path: '/api/ingrediente',
+        handler: async (req, h) => {
+            const { nombre } = req.payload
+            const response = await ctls.nuevoIngrediente(nombre)
+            const finalResponse = h.response(response)
+            if (!response.ok) {
+                finalResponse.code(response.status)
             }
+            return finalResponse
         }
     },
     {
         method: 'POST',
-        path: '/especialidad',
-        handler: async (req, res) => {
+        path: '/api/especialidad',
+        handler: async (req, h) => {
+            const { nombre, ingredientes } = req.payload
+            console.log(`headers: ${ JSON.stringify(h.headers) }`)
+            const token = req.headers['Authorization']
+            const response = await ctls.nuevaEspecialidad(token, { nombre, ingredientes })
+            const finalResponse = h.response(response)
+            if (!response.ok) {
+                finalResponse.code(response.status)
+            }
+            return finalResponse
+        }
+    },
+    {
+        method: 'POST',
+        path: '/api/promocion',
+        handler: async (req, h) => {
             return {
                 ok: true,
-                message: 'POST especialidad'
+                message: 'POST promocion'
             }
         }
     },
@@ -72,11 +105,11 @@ const routes = [
     // ================
     {
         method: 'POST',
-        path: '/login',
-        handler: async (req, res) => {
+        path: '/api/login',
+        handler: async (req, h) => {
             const { phone, password } = req.payload
             const response = await ctls.entrarUsuario(phone, password)
-            let finalResponse = res.response(response)
+            let finalResponse = h.response(response)
 
             if (!response.ok) {
                 finalResponse.code(response.status)
@@ -86,11 +119,11 @@ const routes = [
     },
     {
         method: 'POST',
-        path: '/registrarme',
-        handler: async (req, res) => {
+        path: '/api/registrarme',
+        handler: async (req, h) => {
             const { phone, password, address } = req.payload
             const response = await ctls.nuevoUsuario(phone, password, address)
-            const finalResponse = res.response(response)
+            const finalResponse = h.response(response)
 
             if (!response.ok) {
                 finalResponse.code(response.status)
@@ -100,8 +133,8 @@ const routes = [
     },
     {
         method: 'GET',
-        path: '/info',
-        handler: async (req, res) => {
+        path: '/api/info',
+        handler: async (req, h) => {
             return {
                 ok: true,
                 message: 'GET info'
@@ -110,8 +143,8 @@ const routes = [
     },
     {
         method: 'PUT',
-        path: '/info/{id}',
-        handler: async (req, res) => {
+        path: '/api/info/{id}',
+        handler: async (req, h) => {
             return {
                 ok: true,
                 message: 'PUT info'
@@ -119,7 +152,7 @@ const routes = [
         }
     },
     // ================
-    // Renderización del cliente
+    // Renderización del cliente web
     // ================
     {
         method: 'GET',

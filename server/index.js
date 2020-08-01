@@ -23,7 +23,6 @@ const init = async () => {
     } catch (error) {
         console.error('No está corriendo el servidor', error)
     }
-
 }
 
 init()

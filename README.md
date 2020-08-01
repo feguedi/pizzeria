@@ -1,10 +1,10 @@
 # Pizzería
 
-Proyecto de pizzería para personalizar las órdenes y lo demás...
+Proyecto de pizzería para personalizar las órdenes y así...
 
 ## Objetivo
 
-Ninguno. Solo quiero armar una interfaz para hacer pizzas.
+Ninguno. Solo quiero armar una página web para pedir pizzas.
 
 ## Instalar
 
@@ -43,7 +43,6 @@ Ya sea con **[Yarn](https://yarnpkg.com/getting-started/install)** o **NPM**, lo
 
 - **MongoDB**
 - Hapi.js
-- JSON Web Tokens
 
 ## Estructura de la BD
 
@@ -52,3 +51,11 @@ Ya sea con **[Yarn](https://yarnpkg.com/getting-started/install)** o **NPM**, lo
 
 ## Endpoints
 
+*También pendiente*
+
+## Por hacer
+
+Además de lo que ya se menciona:
+
+- Que HapiJS acepte las rutas de React
+- Armar un ícono para el proyecto

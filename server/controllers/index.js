@@ -1,4 +1,4 @@
-const { pick, reject } = require('underscore')
+const { pick } = require('underscore')
 const { compare, hash } = require('bcrypt')
 const { sign, verify } = require('jsonwebtoken')
 const { Schema } = require('mongoose')
@@ -7,43 +7,54 @@ const Pedido = require('../models/pedido')
 const Especialidad = require('../models/especialidad')
 const Ingrediente = require('../models/ingrediente')
 const Usuario = require('../models/usuario')
+const Admin = require('../models/admin')
 const Promocion = require('../models/promocion')
 
-exports.nuevaEspecialidad = async (nombre, ingredientes) => {
+exports.nuevaEspecialidad = async (token, { nombre, ingredientes }) => {
     let ings
     try {
+        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
+        if (!usuario.tipo) {
+            return { ok: false, message: 'No cuenta con permisos', status: 403 }
+        }
         if (typeof ingredientes === Schema.Types.ObjectId) {
             ings = [ingredientes]
         } else if (Array.isArray(JSON.parse(ingredientes))) {
             ingredientes = JSON.parse(ingredientes)
-            let correct = true
-            try {
-                for (const ingrediente of ingredientes) {
-                    const bdResponse = await Ingrediente.count({ _id: ingrediente })
-                    correct = bdResponse && correct
-                }
-                ings = [...ingredientes]
-            } catch (error) {
-                return { ok: false, message: error.message }
-            }
+            ings = [...ingredientes]
         }
 
         const especialidad = new Especialidad({ nombre, ingredientes: ings })
         const bdResponse = await especialidad.save()
         bdResponse = pick(bdResponse, ['nombre', 'disponibilidad'])
 
-        return { ok: true, message: 'Registrada nueva especialidad' }
+        return { ok: true, message: 'Registrada nueva especialidad', especialidad: bdResponse }
     } catch (error) {
         return { ok: false, message: error.message, status: 400 }
     }
 }
 
-exports.nuevoIngrediente = async nombre => {
+exports.nuevoIngrediente = async (token, nombre) => {
     try {
+        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
+        if (!usuario.tipo) {
+            return { ok: false, message: 'No procede', status: 400 }
+        }
         const ingrediente = new Ingrediente({ nombre })
-        const bdResponse = await ingrediente.save()
+        let bdResponse = await ingrediente.save()
         bdResponse = pick(bdResponse, ['nombre', 'disponibilidad'])
         return { ok: true, message: 'Ingrediente agregado', ingrediente: bdResponse }
+    } catch (error) {
+        return { ok: false, message: error.message, status: 400 }
+    }
+}
+
+exports.nuevoAdmin = async ({ nombre, contrasena, tipo, numeroTelefono }) => {
+    try {
+        contrasena = await hash(contrasena, 10)
+        const admin = new Admin({ nombre, tipo, password: contrasena, numeroTelefono })
+        const bdResponse = admin.save()
+        return { ok: true, token: crearToken(bdResponse), message: 'Administrador creado' }
     } catch (error) {
         return { ok: false, message: error.message, status: 400 }
     }
@@ -68,10 +79,20 @@ exports.entrarUsuario = async (telefono, contrasena) => {
 exports.obtenerInfoUsuario = async token => {
     try {
         const tokenVerificado = await verify(token, process.env.SECRET_KEY)
-        let usuario = await Usuario.findById(tokenVerificado._id)
-        usuario = pick(usuario, ['_id', 'nombre', 'telefono', 'domicilios', 'pedidosAnteriores'])
-        usuario['pedidosAnteriores'] = usuario['pedidosAnteriores'].map(pedido => pick(pedido, ['_id', 'pizzas', 'fecha']))
-        usuario['domicilios'] = usuario['domicilios'].map(domicilio => pick(domicilio, ['_id', 'calle', 'numero', 'numeroInterior', 'colonia', 'codigoPostal']))
+        let usuario
+        try {
+            usuario = await Usuario.findById(tokenVerificado._id)
+            usuario = pick(usuario, ['_id', 'nombre', 'telefono', 'domicilios', 'pedidosAnteriores'])
+            usuario['pedidosAnteriores'] = usuario['pedidosAnteriores'].map(pedido => pick(pedido, ['_id', 'pizzas', 'fecha']))
+            usuario['domicilios'] = usuario['domicilios'].map(domicilio => pick(domicilio, ['_id', 'calle', 'numero', 'numeroInterior', 'colonia', 'codigoPostal']))
+        } catch (e) {
+            usuario = await Admin.findById(tokenVerificado._id)
+            console.log(`usuario: ${ JSON.stringify(usuario) }`)
+            if (Object.keys(usuario).length === 0) {
+                return { ok: false, message: 'No procede', status: 403 }
+            }
+            usuario = pick(usuario, ['_id', 'nombre', 'tipo', 'numeroTelefono'])
+        }
 
         return { ok: true, usuario }
     } catch (error) {
@@ -110,8 +131,37 @@ exports.actualizarDatosUsuario = async (token, datos) => {
     }
 }
 
-exports.nuevoPedido = async ({  }) => {
-    
+exports.nuevoPedido = async (token, { pizzas, domicilio, promocion: promoNombre }) => {
+    let values = {}
+    const usrId = await (await this.obtenerInfoUsuario(token)).usuario._id
+    values['usuario'] = usrId
+    try {
+        const { calle, numero, colonia, codigoPostal, coordenadas } = domicilio
+        const { latitud, longitud } = coordenadas
+        values['domicilio'] = { calle, numero, colonia, codigoPostal, coordenadas: { latitud, longitud } }
+
+        if (domicilio.numeroInterior) {
+            values['domicilio']['numeroInterior'] = domicilio.numeroInterior
+        }
+        if (domicilio.municipio) {
+            values['domicilio']['municipio'] = domicilio.municipio
+        }
+        if (domicilio.estado) {
+            values['domicilio']['estado'] = domicilio. estado
+        }
+        if (promoNombre) {
+            const promo = await Promocion.findOne({ 'nombre': promoNombre })
+            values['promocion'] = promo._id
+        }
+
+        values['pizzas'] = JSON.parse(pizzas)
+        const pedido = new Pedido({ ...values })
+        const bdResponse = await pedido.save()
+
+        return { ok: true, message: 'Tu pedido está en preparación', pedido: bdResponse._id }
+    } catch (error) {
+        return { ok: false, message: error.message, status: 400 }
+    }
 }
 
 exports.actualizarIngrediente = () => {
@@ -126,16 +176,70 @@ exports.actualizarPedido = () => {
 
 }
 
-exports.obtenerPedido = () => {
-
+exports.obtenerPedido = async (token, pedidoId) => {
+    try {
+        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
+        let pedido = await Pedido.findOne({ '_id': pedidoId, 'usuario': usuario._id })
+        delete pedido.__v
+        if (usuario.tipo || pedido.usuario === usuario._id) {
+            return { ok: true, pedido }
+        }
+        return { ok: false, message: 'No existe tal pedido', status: 404 }
+    } catch (error) {
+        return { ok: false, message: error.message, status: 400 }
+    }
 }
 
-exports.obtenerPedidos = () => {
-
+exports.obtenerPedidosAdmin = async token => {
+    try {
+        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
+        if (!usuario.tipo) {
+            return { ok: false, message: 'No procede', status: 400 }
+        }
+        const pedidos = await Pedidos.find()
+        return { ok: true, pedidos }
+    } catch (error) {
+        return { ok: false, message: error.message, status: 400 }
+    }
 }
 
-exports.nuevaPromocion = () => {
+exports.obtenerPedidosUsuario = async token => {
+    try {
+        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
+        const pedidos = await Pedido.find({ 'usuario': usuario._id })
+        if (pedidos.length === 0) {
+            return { ok: false, message: 'No hay pedidos', status: 404 }
+        }
+        return { ok: true, pedidos }
+    } catch (error) {
+        return { ok: false, message: error.message, status: 400 }
+    }
+}
 
+exports.nuevaPromocion = async (token, { nombre, precio, oferton }) => {
+    try {
+        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
+        if (!usuario.tipo) {
+            return { ok: false, message: 'No procede', status: 400 }
+        }
+        oferton = JSON.parse(oferton)
+        if (Array.isArray(oferton)) {
+            const especialidadValida = oferton.filter(async oferta => await checkEspecialidad(oferta.especialidad))
+            if (oferton.length !== especialidadValida.length) {
+                return { ok: false, message: 'No existe tal especialidad', status: 400 }
+            }
+        } else {
+            if (!(await checkEspecialidad(oferton.especialidad))) {
+                return { ok: false, message: 'No existe tal especialidad', status: 400 }
+            }
+            oferton = [ oferton ]
+        }
+        const promocion = new Promocion({ nombre, precio, oferton })
+        const bdResponse = await promocion.save()
+        return { ok: true, message: 'Promoción agregada', promocion: bdResponse }
+    } catch (error) {
+        return { ok: false, message: error.message, status: 400 }
+    }
 }
 
 exports.actualizarPromocion = async (id, { nombre, precio, oferton }) => {
@@ -188,4 +292,11 @@ const auth = bearerToken => new Promise((resolve, reject) => {
     }
 }).catch(asdf => {
     return { message: 'No es un encabezado válido'}
+})
+
+const checkEspecialidad = async especialidadId => new Promise((resolve, reject) => {
+    Especialidad.findById(especialidadId, (err, esp) => {
+        if (err) return reject(false)
+        return resolve(true)
+    })
 })
