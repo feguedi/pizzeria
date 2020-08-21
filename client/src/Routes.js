@@ -1,24 +1,27 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { Router, Switch, Route, Redirect } from 'react-router-dom'
 import { createBrowserHistory } from 'history'
-import { useColorMode } from '@chakra-ui/core'
+import { useColorMode, useTheme } from '@chakra-ui/core'
 // import AuthApi from './utils/auth'
 import HomeComponent from './views/Home'
 import ProfileComponent from './views/Profile'
 import OrderComponent from './views/Order'
 import AnOrderComponent from './views/AnOrder'
+import OfferComponent from './views/Offers'
 import CheckoutComponent from './views/Checkout'
 import ErrorComponent from './views/Error404'
 
 export default () => {
     const [browserHistory] = useState(createBrowserHistory())
     // const Auth = useContext(AuthApi)
+    const theme = useTheme()
     const { colorMode, toggleColorMode } = useColorMode()
 
     useEffect(() => {
         if (colorMode === 'light') {
             toggleColorMode()
         }
+        console.log('fontsize:', theme.fonts)
     })
 
     // const ProtectedRoute = ({ auth, component: Component, path, altRoute, ...rest }) => (
@@ -32,6 +35,8 @@ export default () => {
                 <Route path="/profile" component={ProfileComponent} exact />
                 <Route path="/order" component={OrderComponent} exact />
                 <Route path="/orders/:id" component={AnOrderComponent} />
+                <Route path="/offers" component={OfferComponent} exact/>
+                <Route path="/offers/:id" component={OfferComponent} />
                 <Route path="/checkout" component={CheckoutComponent} exact />
                 <Route path="/error" component={ErrorComponent} />
                 <Redirect from="*" to="/error" />

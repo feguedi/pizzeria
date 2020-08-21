@@ -16,6 +16,7 @@ export default () => {
             const requestURI = process.env.NODE_ENV !== 'production' ? `${ SERVER_URI }/pedidos/${ id }` : `${ SERVER_URI }/api/pedidos/${ id }`
             const orderData = await (await axios.get(requestURI)).data
             setData(orderData)
+            console.log('data:', orderData)
         } catch (error) {
             setError({ err: true, message: error.message })
         }
@@ -33,9 +34,10 @@ export default () => {
 
     return (
         <UserLayout>
-            <Stack align="center">
-                <Heading as="h2">Orden</Heading>
+            <Stack m="auto" my="4rem" align="center">
+                <Heading as="h1" fontSize="4xl">Orden</Heading>
                 <Text>Una orden en específico</Text>
+                
             </Stack>
         </UserLayout>
     )

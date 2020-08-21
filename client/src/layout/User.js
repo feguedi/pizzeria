@@ -1,5 +1,6 @@
 import React from 'react'
 import { Flex } from '@chakra-ui/core'
+import Header from '../components/Header'
 
 export default ({ children }) => (
     <Flex 
@@ -8,6 +9,7 @@ export default ({ children }) => (
         justifyContent="center" 
         style={{ minHeight: "100vh" }}
     >
+        <Header />
         {children}
     </Flex>
 )

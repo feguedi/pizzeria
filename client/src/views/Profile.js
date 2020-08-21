@@ -5,7 +5,7 @@ import UserLayout from '../layout/User'
 export default () => (
     <UserLayout>
         <Stack align="center">
-            <Heading as="h2">Perfil de usuario</Heading>
+            <Heading as="h1" fontSize="4xl">Perfil</Heading>
         </Stack>
     </UserLayout>
 )

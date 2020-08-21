@@ -327,28 +327,28 @@ const headingStyle = {
 
 const customStyles = {
     h1: {
-        fontSize: 32,
         ...headingStyle,
+        fontSize: '1.875rem',
     },
     h2: {
-        fontSize: 28,
         ...headingStyle,
+        fontSize: '1.5rem',
     },
     h3: {
-        fontSize: 26,
         ...headingStyle,
+        fontSize: '1.25rem',
     },
     h4: {
-        fontSize: 22,
         ...headingStyle,
+        fontSize: '1rem',
     },
     h5: {
-        fontSize: 18,
         ...headingStyle,
+        fontSize: '0.875rem',
     },
     h6: {
-        fontSize: 16,
         ...headingStyle,
+        fontSize: '0.75rem',
     },
 }
 
