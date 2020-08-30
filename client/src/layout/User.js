@@ -6,7 +6,6 @@ export default ({ children }) => (
     <Flex 
         direction="column" 
         alignItems="center" 
-        justifyContent="center" 
         style={{ minHeight: "100vh" }}
     >
         <Header />

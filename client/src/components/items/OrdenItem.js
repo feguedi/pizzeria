@@ -1,12 +1,18 @@
 import React from 'react'
-import { Flex } from '@chakra-ui/core'
+import { Flex, Box, Image, Text } from '@chakra-ui/core'
 
 export default ({ tamano, distribucion }) => {
     const { parte, especialidad} = distribucion
 
     return (
-        <Flex>
-            
-        </Flex>
+        <Box>
+            <Flex>
+                <Image rounded="xl" src="" fallbackSrc="" />
+                <Text></Text>
+            </Flex>
+            <Flex align="baseline" mt={2}>
+
+            </Flex>
+        </Box>
     )
 }

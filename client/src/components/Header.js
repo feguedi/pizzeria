@@ -4,7 +4,7 @@ import { useCookies } from 'react-cookie'
 import { Link, useLocation } from 'react-router-dom'
 import propTypes from 'prop-types'
 
-export default ({ props }) => {
+export default props => {
     const [show, setShow] = useState(false)
     const { pathname: currentLocation } = useLocation()
     const [cookies, setCookies, removeCookies] = useCookies(['token'])
@@ -19,7 +19,11 @@ export default ({ props }) => {
             mr={6}
             fontWeight={currentPage ? 'bolder' : 'medium'}
             fontSize={currentPage ? 'md' : 'sm'}
+
             display="block"
+            float="left"
+            textAlign="center"
+            
             onClick={() => {
                 if (logout) {
                     removeCookies('token')
@@ -43,15 +47,16 @@ export default ({ props }) => {
             <Flex
                 w={{ base: '100%', lg: '1024px', xl: '1440px' }}
                 as="nav"
+                padding="1.5rem"
                 align="center"
                 justifyContent="space-between"
                 wrap="wrap"
-                py="1.5rem"
                 color="white"
+                overflow="hidden"
                 {...props}
             >
                 <Flex align="center" mr={5}>
-                    <Heading as="h1" size="lg">
+                    <Heading as="h1" size="lg" letterSpacing={'-0.1rem'}>
                         <Link to="/">Erácleo's PIZZA</Link>
                     </Heading>
                 </Flex>
@@ -64,10 +69,10 @@ export default ({ props }) => {
                 </Box>
 
                 <Box
-                    display={{ sm: show ? 'block' : 'none', md: 'flex' }}
+                    display={{ base: show ? 'block' : 'none', md: 'flex' }}
                     width={{ sm: 'full', md: 'auto' }}
+                    position={{ base: 'relative', md: 'initial' }}
                     alignItems="center"
-                    justifyContent="flex-end"
                     flexGrow={1}
                 >
                     {token && (

@@ -13,7 +13,7 @@ export default () => {
     const getOrderData = async () => {
         try {
             const SERVER_URI = process.env.REACT_APP_SERVER_URI
-            const requestURI = process.env.NODE_ENV !== 'production' ? `${ SERVER_URI }/pedidos/${ id }` : `${ SERVER_URI }/api/pedidos/${ id }`
+            const requestURI = `${ SERVER_URI }/api/pedidos/${ id }`
             const orderData = await (await axios.get(requestURI)).data
             setData(orderData)
             console.log('data:', orderData)

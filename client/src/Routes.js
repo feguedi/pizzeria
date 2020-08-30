@@ -8,7 +8,9 @@ import ProfileComponent from './views/Profile'
 import OrderComponent from './views/Order'
 import AnOrderComponent from './views/AnOrder'
 import OfferComponent from './views/Offers'
+import AnOfferComponent from './views/Offers'
 import CheckoutComponent from './views/Checkout'
+import SandboxComponent from './views/Sandbox'
 import ErrorComponent from './views/Error404'
 
 export default () => {
@@ -36,8 +38,9 @@ export default () => {
                 <Route path="/order" component={OrderComponent} exact />
                 <Route path="/orders/:id" component={AnOrderComponent} />
                 <Route path="/offers" component={OfferComponent} exact/>
-                <Route path="/offers/:id" component={OfferComponent} />
+                <Route path="/offers/:id" component={AnOfferComponent} />
                 <Route path="/checkout" component={CheckoutComponent} exact />
+                <Route path="/sandbox" component={SandboxComponent} exact />
                 <Route path="/error" component={ErrorComponent} />
                 <Redirect from="*" to="/error" />
             </Switch>

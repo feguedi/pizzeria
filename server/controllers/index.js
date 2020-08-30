@@ -13,19 +13,20 @@ const Promocion = require('../models/promocion')
 exports.nuevaEspecialidad = async (token, { nombre, ingredientes }) => {
     let ings
     try {
-        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
-        if (!usuario.tipo) {
+        const { admin } = await this.obtenerInfoAdmin(token)
+        if (!admin.tipo) {
             return { ok: false, message: 'No cuenta con permisos', status: 403 }
+        }
+        ingredientes = JSON.parse(ingredientes)
+        if (Array.isArray(ingredientes)) {
+            ings = ingredientes
         }
         if (typeof ingredientes === Schema.Types.ObjectId) {
             ings = [ingredientes]
-        } else if (Array.isArray(JSON.parse(ingredientes))) {
-            ingredientes = JSON.parse(ingredientes)
-            ings = [...ingredientes]
         }
 
         const especialidad = new Especialidad({ nombre, ingredientes: ings })
-        const bdResponse = await especialidad.save()
+        let bdResponse = await especialidad.save()
         bdResponse = pick(bdResponse, ['nombre', 'disponibilidad'])
 
         return { ok: true, message: 'Registrada nueva especialidad', especialidad: bdResponse }
@@ -38,7 +39,7 @@ exports.nuevoIngrediente = async (token, nombre) => {
     try {
         const usuario = await (await this.obtenerInfoUsuario(token)).usuario
         if (!usuario.tipo) {
-            return { ok: false, message: 'No procede', status: 400 }
+            return { ok: false, message: 'No cuenta con permisos', status: 403 }
         }
         const ingrediente = new Ingrediente({ nombre })
         let bdResponse = await ingrediente.save()
@@ -57,6 +58,19 @@ exports.nuevoAdmin = async ({ nombre, contrasena, tipo, numeroTelefono }) => {
         return { ok: true, token: crearToken(bdResponse), message: 'Administrador creado' }
     } catch (error) {
         return { ok: false, message: error.message, status: 400 }
+    }
+}
+
+exports.entrarAdmin = async({ usuario, contrasena }) => {
+    try {
+        let admin = await Admin.findOne({ 'nombre': usuario })
+        if (await !compare(contrasena, admin.contrasena)) {
+            return { ok: false, message: 'Credenciales incorrectas', status: 400 }
+        }
+        delete admin['__v']
+        return { ok: true, token: crearToken(admin) }
+    } catch (error) {
+        return { ok: false, message: `Error: ${ error.message }`, status: 400 }
     }
 }
 
@@ -96,14 +110,35 @@ exports.obtenerInfoUsuario = async token => {
 
         return { ok: true, usuario }
     } catch (error) {
-        return { ok: false, message: error.message, status: 400 }
+        return { ok: false, message: 'No cuenta con permisos', status: 403 }
     }
 }
 
-exports.nuevoUsuario = async (telefono, contrasena, domicilio) => {
+exports.obtenerInfoAdmin = async token => {
+    try {
+        if (token.includes('Bearer')) {
+            token = token.split(' ')[1]
+        } else {
+            return { ok: false, message: 'No procede', status: 403}
+        }
+        const tokenVerificado = await verify(token, process.env.SECRET_KEY)
+        let admin
+        try {
+            admin = await Admin.findById(tokenVerificado.usuario._id)
+            admin = pick(admin, ['_id', 'nombre', 'tipo', 'numeroTelefono'])
+        } catch (error) {
+            return { ok: false, message: 'No procede', status: 403 }
+        }
+        return { ok: true, admin }
+    } catch (error) {
+        return { ok: false, message: 'No procede', status: 403 }
+    }
+}
+
+exports.nuevoUsuario = async (nombre, telefono, contrasena, domicilio) => {
     try {
         contrasena = await hash(contrasena, 10)
-        const usuarioNuevo = new Usuario({ telefono, contrasena, domicilio })
+        const usuarioNuevo = new Usuario({ nombre, telefono, contrasena, domicilio })
         const bdResponse = await usuarioNuevo.save()
         return { ok: true, message: 'Usuario creado', token: crearToken(bdResponse) }
     } catch (error) {
@@ -176,6 +211,48 @@ exports.actualizarPedido = () => {
 
 }
 
+exports.obtenerEspecialidades = async () => {
+    try {
+        const bdResponse = await Especialidad.find()
+        if (bdResponse.length < 1) {
+            return { ok: false, message: 'No hay especialidades', status: 404 }
+        }
+        console.log(bdResponse)
+        // const especialidades = pick(bdResponse, [''])
+        // const ingredientes = especialidades.map(especialidad => pick(especialidad.ingredientes, ['_id', 'nombre', 'disponibilidad']))
+        return {
+            ok: true,
+            especialidades: bdResponse
+        }
+    } catch (error) {
+        return {
+            ok: false,
+            message: error.message,
+            status: 400
+        }
+    }
+}
+
+exports.obtenerIngredientes = async () => {
+    try {
+        const bdResponse = await Ingrediente.find()
+        if (bdResponse.length < 1) {
+            return { ok: false, message: 'No hay ingredientes', status: 404 }
+        }
+        const ingredientes = bdResponse.map(ing => pick(ing, ['_id', 'nombre', 'disponibilidad']))
+        return {
+            ok: true,
+            ingredientes
+        }
+    } catch (error) {
+        return {
+            ok: false,
+            message: error.message,
+            status: 400
+        }
+    }
+}
+
 exports.obtenerPedido = async (token, pedidoId) => {
     try {
         const usuario = await (await this.obtenerInfoUsuario(token)).usuario
@@ -194,7 +271,7 @@ exports.obtenerPedidosAdmin = async token => {
     try {
         const usuario = await (await this.obtenerInfoUsuario(token)).usuario
         if (!usuario.tipo) {
-            return { ok: false, message: 'No procede', status: 400 }
+            return { ok: false, message: 'No cuenta con permisos', status: 403 }
         }
         const pedidos = await Pedidos.find()
         return { ok: true, pedidos }
