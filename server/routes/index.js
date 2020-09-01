@@ -119,10 +119,15 @@ const routes = [
     {
         method: 'GET',
         path: '/api/especialidad/{id}',
-        handler: async (req, h) => ({
-            ok: true,
-            message: `GET especialidad ${ req.params.id }`
-        })
+        handler: async (req, h) => {
+            const { id } = req.params
+            const response = await ctls.obtenerEspecialidad(id)
+            const finalResponse = h.response(response)
+            if (!response.ok) {
+                finalResponse.code(response.status)
+            }
+            return finalResponse
+        }
     },
     {
         method: 'GET',

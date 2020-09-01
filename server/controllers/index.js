@@ -11,7 +11,6 @@ const Admin = require('../models/admin')
 const Promocion = require('../models/promocion')
 
 exports.nuevaEspecialidad = async (token, { nombre, ingredientes }) => {
-    let ings
     try {
         const { admin } = await this.obtenerInfoAdmin(token)
         if (!admin.tipo) {
@@ -19,17 +18,51 @@ exports.nuevaEspecialidad = async (token, { nombre, ingredientes }) => {
         }
         ingredientes = JSON.parse(ingredientes)
         if (Array.isArray(ingredientes)) {
-            ings = ingredientes
+            const ings = ingredientes.map(async ing => {
+                try {
+                    const datos = await Ingrediente.findById(ing)
+                    console.log('datos:', datos)
+                    const { _id: id, nombre, disponibilidad } = datos
+                    if (!disponibilidad) {
+                        return null
+                    }
+                    return ({
+                        id,
+                        nombre
+                    })
+                } catch (error) {
+                    console.error(error)
+                    return null
+                }
+            })
+            console.log(ings)
+            if (ings.includes(null)) {
+                return {
+                    ok: false,
+                    message: 'No todos los ingredientes están disponibles',
+                    status: 400
+                }
+            }
+            console.log({nombre, ings})
+            return agregarEspecialidadEnBD({nombre, ings})
         }
         if (typeof ingredientes === Schema.Types.ObjectId) {
-            ings = [ingredientes]
+            let ingrediente = await Ingrediente.findById(ingredientes)
+            if (!ingrediente.disponibilidad) {
+                return {
+                    ok: false,
+                    message: 'El ingrediente no está disponible',
+                    status: 400
+                }
+            }
+            ingrediente['id'] = ingrediente._id
+            delete ingrediente._id
+            delete ingrediente.__v
+            const ings = [ingrediente]
+
+            return agregarEspecialidadEnBD({ nombre, ings })
         }
-
-        const especialidad = new Especialidad({ nombre, ingredientes: ings })
-        let bdResponse = await especialidad.save()
-        bdResponse = pick(bdResponse, ['nombre', 'disponibilidad'])
-
-        return { ok: true, message: 'Registrada nueva especialidad', especialidad: bdResponse }
+        return { ok: false, message: 'No se registro la especialidad', status: 400 }
     } catch (error) {
         return { ok: false, message: error.message, status: 400 }
     }
@@ -92,6 +125,7 @@ exports.entrarUsuario = async (telefono, contrasena) => {
 
 exports.obtenerInfoUsuario = async token => {
     try {
+        token = await auth(token)
         const tokenVerificado = await verify(token, process.env.SECRET_KEY)
         let usuario
         try {
@@ -116,11 +150,7 @@ exports.obtenerInfoUsuario = async token => {
 
 exports.obtenerInfoAdmin = async token => {
     try {
-        if (token.includes('Bearer')) {
-            token = token.split(' ')[1]
-        } else {
-            return { ok: false, message: 'No procede', status: 403}
-        }
+        token = await auth(token)
         const tokenVerificado = await verify(token, process.env.SECRET_KEY)
         let admin
         try {
@@ -230,6 +260,30 @@ exports.obtenerEspecialidades = async () => {
             message: error.message,
             status: 400
         }
+    }
+}
+
+exports.obtenerEspecialidad = async idEspecialidad => {
+    try {
+        if (typeof idEspecialidad !== Schema.Types.ObjectId) {
+            return {
+                ok: false, 
+                message: 'No existe tal especialidad',
+                status: 404
+            }
+        }
+        const bdResponse = await Especialidad.findById(idEspecialidad)
+        if (!bdResponse.disponibilidad) {
+            return {
+                ok: false,
+                message: 'Por el momento no está disponible esa especialidad',
+                status: 400
+            }
+        }
+        let especialidad = pick(bdResponse, ['_id', 'nombre', 'ingredientes', 'disponibilidad'])
+        especialidad['ingredientes'].map(ing => ing._id)
+    } catch (error) {
+        
     }
 }
 
@@ -371,9 +425,19 @@ const auth = bearerToken => new Promise((resolve, reject) => {
     return { message: 'No es un encabezado válido'}
 })
 
-const checkEspecialidad = async especialidadId => new Promise((resolve, reject) => {
+const checkEspecialidad = especialidadId => new Promise((resolve, reject) => {
     Especialidad.findById(especialidadId, (err, esp) => {
         if (err) return reject(false)
         return resolve(true)
+    })
+})
+
+const agregarEspecialidadEnBD = ({ nombre, ingredientes }) => new Promise((resolve, reject) => {
+    const especialidad = new Especialidad({ nombre, ingredientes })
+    especialidad.save((err, bdResponse) => {
+        if (err) return reject({ message: err.message })
+        bdResponse = pick(bdResponse, ['nombre', 'disponibilidad'])
+
+        return resolve({ ok: true, message: 'Registrada nueva especialidad', especialidad: bdResponse })
     })
 })

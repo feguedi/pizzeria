@@ -8,8 +8,15 @@ const especialidadSchema = new Schema({
         required: true
     },
     ingredientes: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Ingrediente'
+        nombre: {
+            type: String,
+            required: [true, 'Se requiere el nombre del ingrediente']
+        },
+        id:{
+            required: [true, 'Se requiere el id del ingrediente'],
+            type: Schema.Types.ObjectId,
+            ref: 'Ingrediente'
+        }
     }],
     disponibilidad: {
         type: Boolean,
