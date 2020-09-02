@@ -15,6 +15,6 @@ const ingredienteSchema = new Schema({
     }
 })
 
-ingredienteSchema.plugin(uniqueValidator, 'Ya existe ese ingrediente')
+ingredienteSchema.plugin(uniqueValidator, { message: 'Ya existe ese {PATH}' })
 
 module.exports = model('Ingrediente', ingredienteSchema)

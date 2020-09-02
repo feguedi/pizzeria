@@ -24,6 +24,6 @@ const especialidadSchema = new Schema({
     }
 })
 
-especialidadSchema.plugin(uniqueValidator, 'Ya existe esa especialidad')
+especialidadSchema.plugin(uniqueValidator, { message: 'Ya existe esa especialidad' })
 
 module.exports = model('Especialidad', especialidadSchema)

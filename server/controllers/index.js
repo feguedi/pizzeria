@@ -18,33 +18,21 @@ exports.nuevaEspecialidad = async (token, { nombre, ingredientes }) => {
         }
         ingredientes = JSON.parse(ingredientes)
         if (Array.isArray(ingredientes)) {
-            const ings = ingredientes.map(async ing => {
+            const ings = async () => await Promise.all(ingredientes.map(async function (ing) {
                 try {
-                    const datos = await Ingrediente.findById(ing)
+                    const datos = await Ingrediente.findById(ing, '_id nombre disponibilidad').exec()
                     console.log('datos:', datos)
                     const { _id: id, nombre, disponibilidad } = datos
                     if (!disponibilidad) {
                         return null
                     }
-                    return ({
-                        id,
-                        nombre
-                    })
+                    return ({ id, nombre, disponibilidad })
                 } catch (error) {
                     console.error(error)
                     return null
                 }
-            })
-            console.log(ings)
-            if (ings.includes(null)) {
-                return {
-                    ok: false,
-                    message: 'No todos los ingredientes están disponibles',
-                    status: 400
-                }
-            }
-            console.log({nombre, ings})
-            return agregarEspecialidadEnBD({nombre, ings})
+            }))
+            return await agregarEspecialidadEnBD({nombre, ingredientes: await ings()})
         }
         if (typeof ingredientes === Schema.Types.ObjectId) {
             let ingrediente = await Ingrediente.findById(ingredientes)
@@ -64,14 +52,17 @@ exports.nuevaEspecialidad = async (token, { nombre, ingredientes }) => {
         }
         return { ok: false, message: 'No se registro la especialidad', status: 400 }
     } catch (error) {
+        if (error.errors.nombre.properties) {
+            return { ok: false, message: error.errors.nombre.properties.message, status: 400 }
+        }
         return { ok: false, message: error.message, status: 400 }
     }
 }
 
 exports.nuevoIngrediente = async (token, nombre) => {
     try {
-        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
-        if (!usuario.tipo) {
+        const { admin } = await this.obtenerInfoAdmin(token)
+        if (!admin.tipo) {
             return { ok: false, message: 'No cuenta con permisos', status: 403 }
         }
         const ingrediente = new Ingrediente({ nombre })
@@ -79,6 +70,9 @@ exports.nuevoIngrediente = async (token, nombre) => {
         bdResponse = pick(bdResponse, ['nombre', 'disponibilidad'])
         return { ok: true, message: 'Ingrediente agregado', ingrediente: bdResponse }
     } catch (error) {
+        if (error.errors.nombre.properties) {
+            return { ok: false, message: error.errors.nombre.properties.message, status: 400 }
+        }
         return { ok: false, message: error.message, status: 400 }
     }
 }
@@ -347,11 +341,11 @@ exports.obtenerPedidosUsuario = async token => {
     }
 }
 
-exports.nuevaPromocion = async (token, { nombre, precio, oferton }) => {
+exports.nuevaPromocion = async (token, { nombre, dia, precio, oferton }) => {
     try {
-        const usuario = await (await this.obtenerInfoUsuario(token)).usuario
-        if (!usuario.tipo) {
-            return { ok: false, message: 'No procede', status: 400 }
+        const { admin } = await this.obtenerInfoAdmin(token)
+        if (!admin.tipo) {
+            return { ok: false, message: 'No cuenta con permisos', status: 403 }
         }
         oferton = JSON.parse(oferton)
         if (Array.isArray(oferton)) {
@@ -359,21 +353,22 @@ exports.nuevaPromocion = async (token, { nombre, precio, oferton }) => {
             if (oferton.length !== especialidadValida.length) {
                 return { ok: false, message: 'No existe tal especialidad', status: 400 }
             }
-        } else {
+            return await agregarOfertaEnBD({ nombre, dia, precio, oferton })
+        } else if (typeof oferton === Schema.Types.ObjectId) {
             if (!(await checkEspecialidad(oferton.especialidad))) {
                 return { ok: false, message: 'No existe tal especialidad', status: 400 }
             }
             oferton = [ oferton ]
+        } else {
+            return { ok: false, message: 'No se enviaron datos válidos', status: 400 }
         }
-        const promocion = new Promocion({ nombre, precio, oferton })
-        const bdResponse = await promocion.save()
-        return { ok: true, message: 'Promoción agregada', promocion: bdResponse }
+        
     } catch (error) {
         return { ok: false, message: error.message, status: 400 }
     }
 }
 
-exports.actualizarPromocion = async (id, { nombre, precio, oferton }) => {
+exports.actualizarPromocion = async (id, { nombre, dia, precio, oferton }) => {
     try {
         let promocionActualizada = await Promocion.findByIdAndUpdate(id, { nombre, precio, oferton }, { new: true })
         promocionActualizada = pick(promocionActualizada, ['_id', 'nombre', 'precio', 'oferton'])
@@ -433,11 +428,26 @@ const checkEspecialidad = especialidadId => new Promise((resolve, reject) => {
 })
 
 const agregarEspecialidadEnBD = ({ nombre, ingredientes }) => new Promise((resolve, reject) => {
+    console.log('agregarEspecialidadEnBD:', { nombre, ingredientes })
+    if (!Array.isArray(ingredientes)) {
+        return reject({ message: 'No se mandaron ingredientes' })
+    }
+    if (ingredientes.filter(ing => ing.disponibilidad).length !== ingredientes.length) {
+        return { message: 'No todos los ingredientes están disponibles' }
+    }
     const especialidad = new Especialidad({ nombre, ingredientes })
     especialidad.save((err, bdResponse) => {
         if (err) return reject({ message: err.message })
         bdResponse = pick(bdResponse, ['nombre', 'disponibilidad'])
 
         return resolve({ ok: true, message: 'Registrada nueva especialidad', especialidad: bdResponse })
+    })
+})
+
+const agregarOfertaEnBD = ({ nombre, dia, precio, oferton }) => new Promise((resolve, reject) => {
+    const promocion = new Promocion({ nombre, dia, precio, oferton })
+    promocion.save((err, bdResponse) => {
+        if (err) return reject({ ok: false, message: '', status: 400 })
+        return resolve({ ok: true, message: 'Promoción agregada', promocion: bdResponse })
     })
 })
